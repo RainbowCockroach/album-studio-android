@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">To Print</string>
+    <string name="share_target_label">To Print</string>
 </resources>

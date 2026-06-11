@@ -2,4 +2,13 @@
 <resources>
 
     <style name="Theme.ToPrint" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Invisible theme for ShareReceiverActivity: it does no UI of its own, just
+         copies the shared photos, enqueues uploads, shows a toast and finishes. -->
+    <style name="Theme.ToPrint.Transparent" parent="android:Theme.Translucent.NoTitleBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
 </resources>

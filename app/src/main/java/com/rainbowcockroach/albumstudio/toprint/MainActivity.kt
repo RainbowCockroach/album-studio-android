@@ -1,47 +1,48 @@
 package com.rainbowcockroach.albumstudio.toprint
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import com.rainbowcockroach.albumstudio.toprint.ui.AppRoot
 import com.rainbowcockroach.albumstudio.toprint.ui.theme.ToPrintTheme
 
 class MainActivity : ComponentActivity() {
+
+    private val requestNotifications =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* best-effort */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        maybeRequestNotificationPermission()
+
+        val openSettings = intent.getBooleanExtra(EXTRA_OPEN_SETTINGS, false)
+        val message = intent.getStringExtra(EXTRA_MESSAGE)
+
         enableEdgeToEdge()
         setContent {
             ToPrintTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                AppRoot(startOnSettings = openSettings, initialMessage = message)
             }
         }
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    private fun maybeRequestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    ToPrintTheme {
-        Greeting("Android")
+    companion object {
+        const val EXTRA_OPEN_SETTINGS = "open_settings"
+        const val EXTRA_MESSAGE = "message"
     }
 }
