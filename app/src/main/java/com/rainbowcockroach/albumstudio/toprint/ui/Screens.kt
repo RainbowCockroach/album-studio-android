@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,6 +28,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,10 +37,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.content.Intent
+import com.rainbowcockroach.albumstudio.toprint.data.UpdateStatus
 import com.rainbowcockroach.albumstudio.toprint.data.UploadEntity
 import com.rainbowcockroach.albumstudio.toprint.data.UploadStatus
 import java.text.DateFormat
@@ -62,6 +68,31 @@ fun AppRoot(
         UploadListScreen(
             viewModel = viewModel,
             onOpenSettings = { showSettings = true },
+        )
+    }
+
+    // Auto-update prompt: the ViewModel checks GitHub on launch; a dialog appears only
+    // when a newer release exists. "Update" opens the release page in the browser.
+    val updateStatus by viewModel.updateStatus.collectAsStateWithLifecycle()
+    (updateStatus as? UpdateStatus.Available)?.let { available ->
+        val context = LocalContext.current
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissUpdate() },
+            title = { Text("Update available") },
+            text = {
+                Text("Version ${available.versionName} is available. You have ${viewModel.installedVersion}.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, available.releaseUrl.toUri())
+                    )
+                    viewModel.dismissUpdate()
+                }) { Text("Update") }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissUpdate() }) { Text("Later") }
+            },
         )
     }
 }
@@ -179,11 +210,14 @@ private fun SettingsScreen(
     onBack: () -> Unit,
 ) {
     val config by viewModel.config.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     var url by remember(config.serverUrl) { mutableStateOf(config.serverUrl) }
     var token by remember(config.token) { mutableStateOf(config.token) }
     var status by remember { mutableStateOf(initialMessage) }
     var testing by remember { mutableStateOf(false) }
+    var updateMsg by remember { mutableStateOf<String?>(null) }
+    var checking by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -244,6 +278,38 @@ private fun SettingsScreen(
                     },
                 ) { Text("Save") }
             }
+
+            Spacer(Modifier.height(24.dp))
+
+            // --- About / updates ---
+            Text(
+                "Version ${viewModel.installedVersion}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            updateMsg?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium)
+            }
+            OutlinedButton(
+                enabled = !checking,
+                onClick = {
+                    checking = true
+                    updateMsg = "Checking…"
+                    viewModel.checkForUpdate { result ->
+                        checking = false
+                        updateMsg = when (result) {
+                            is UpdateStatus.Available -> {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, result.releaseUrl.toUri())
+                                )
+                                "Version ${result.versionName} available — opening download page"
+                            }
+                            is UpdateStatus.UpToDate -> "You're on the latest version"
+                            is UpdateStatus.Failed -> "Check failed: ${result.message}"
+                        }
+                    }
+                },
+            ) { Text("Check for updates") }
         }
     }
 }

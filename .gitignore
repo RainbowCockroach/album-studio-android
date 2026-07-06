@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Release signing key + secrets — NEVER commit. Backed up via GitHub Secret (KEYSTORE_BASE64).
+*.jks
+*.keystore
+SIGNING_SECRETS.txt

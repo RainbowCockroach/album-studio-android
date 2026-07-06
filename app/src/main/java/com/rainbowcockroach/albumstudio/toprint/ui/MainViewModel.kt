@@ -5,12 +5,16 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.rainbowcockroach.albumstudio.toprint.ToPrintApp
 import com.rainbowcockroach.albumstudio.toprint.data.ServerConfig
+import com.rainbowcockroach.albumstudio.toprint.data.UpdateChecker
+import com.rainbowcockroach.albumstudio.toprint.data.UpdateStatus
 import com.rainbowcockroach.albumstudio.toprint.data.UploadEntity
 import com.rainbowcockroach.albumstudio.toprint.data.UploadStatus
 import com.rainbowcockroach.albumstudio.toprint.upload.UploadQueue
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -32,6 +36,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         app.settings.config.stateIn(
             viewModelScope, SharingStarted.WhileSubscribed(5_000), ServerConfig("", "")
         )
+
+    /** Latest update-check result. Null until the first check completes. */
+    private val _updateStatus = MutableStateFlow<UpdateStatus?>(null)
+    val updateStatus: StateFlow<UpdateStatus?> = _updateStatus.asStateFlow()
+
+    val installedVersion: String = UpdateChecker.installedVersionName
+
+    init {
+        // Auto-check once on launch; failures stay silent (result only surfaces a
+        // dialog when an update is actually available).
+        checkForUpdate()
+    }
+
+    /** Query GitHub Releases. [onResult] fires for the manual "Check for updates" button. */
+    fun checkForUpdate(onResult: ((UpdateStatus) -> Unit)? = null) {
+        viewModelScope.launch {
+            val status = withContext(Dispatchers.IO) { app.updateChecker.check() }
+            _updateStatus.value = status
+            onResult?.invoke(status)
+        }
+    }
+
+    /** Dismiss the launch update dialog for this session. */
+    fun dismissUpdate() {
+        _updateStatus.value = null
+    }
 
     fun save(serverUrl: String, token: String, onSaved: () -> Unit) {
         viewModelScope.launch {

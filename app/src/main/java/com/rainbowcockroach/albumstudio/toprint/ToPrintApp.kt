@@ -7,6 +7,7 @@ import android.content.Context
 import com.rainbowcockroach.albumstudio.toprint.data.AppDatabase
 import com.rainbowcockroach.albumstudio.toprint.data.PhotoApi
 import com.rainbowcockroach.albumstudio.toprint.data.SettingsRepository
+import com.rainbowcockroach.albumstudio.toprint.data.UpdateChecker
 import com.rainbowcockroach.albumstudio.toprint.data.UploadDao
 
 /**
@@ -20,6 +21,7 @@ class ToPrintApp : Application() {
     val uploadDao: UploadDao by lazy { database.uploadDao() }
     val settings: SettingsRepository by lazy { SettingsRepository(this) }
     val photoApi: PhotoApi by lazy { PhotoApi() }
+    val updateChecker: UpdateChecker by lazy { UpdateChecker() }
 
     override fun onCreate() {
         super.onCreate()
