@@ -128,7 +128,7 @@ private fun UploadListScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("To Print") },
+                title = { Text("Printworthy") },
                 actions = {
                     if (finishedCount > 0) {
                         BadgedBox(badge = { Badge { Text(finishedCount.toString()) } }) {
@@ -159,7 +159,7 @@ private fun UploadListScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Share photos from your gallery to \"To Print\" and they'll appear here.",
+                    "Share photos from your gallery to \"Printworthy\" and they'll appear here.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }

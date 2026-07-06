@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "To Print"
+rootProject.name = "Printworthy"
 include(":app")

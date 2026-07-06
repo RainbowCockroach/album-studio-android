@@ -18,7 +18,7 @@ import java.io.File
 import java.util.UUID
 
 /**
- * The app's reason to exist: a Share target. Gallery → Share → "To Print" lands here.
+ * The app's reason to exist: a Share target. Gallery → Share → "Printworthy" lands here.
  *
  * Everything that needs the (short-lived) content-URI grant happens NOW, synchronously,
  * before [finish]: copy each image into app-private storage and resolve its `capturedAt`.
