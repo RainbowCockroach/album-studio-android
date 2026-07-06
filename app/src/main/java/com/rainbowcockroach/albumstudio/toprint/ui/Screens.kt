@@ -19,9 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -46,10 +44,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.rainbowcockroach.albumstudio.toprint.R
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -132,7 +133,10 @@ private fun UploadListScreen(
                     if (finishedCount > 0) {
                         BadgedBox(badge = { Badge { Text(finishedCount.toString()) } }) {
                             IconButton(onClick = { showClearConfirm = true }) {
-                                Icon(Icons.Filled.DeleteSweep, contentDescription = "Clear finished uploads")
+                                Icon(
+                                    painterResource(R.drawable.ic_delete_sweep),
+                                    contentDescription = "Clear finished uploads",
+                                )
                             }
                         }
                     }
@@ -250,10 +254,10 @@ private fun UploadThumbnail(upload: UploadEntity) {
         } else {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = if (upload.status == UploadStatus.DONE) {
-                        Icons.Filled.CheckCircle
+                    painter = if (upload.status == UploadStatus.DONE) {
+                        rememberVectorPainter(Icons.Filled.CheckCircle)
                     } else {
-                        Icons.Outlined.Image
+                        painterResource(R.drawable.ic_image_outline)
                     },
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
