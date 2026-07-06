@@ -213,7 +213,7 @@ private fun SettingsScreen(
             OutlinedTextField(
                 value = token,
                 onValueChange = { token = it; status = null },
-                label = { Text("Bearer token") },
+                label = { Text("API token") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )

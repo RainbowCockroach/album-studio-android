@@ -45,7 +45,7 @@ class PhotoApi(private val client: OkHttpClient = defaultClient()) {
     fun validateToken(baseUrl: String, token: String, sinceMonth: String): Boolean = try {
         val request = Request.Builder()
             .url("${baseUrl.trimEnd('/')}/photos?since=$sinceMonth")
-            .header("Authorization", "Bearer $token")
+            .header(HEADER_API_KEY, token)
             .get()
             .build()
         client.newCall(request).execute().use { it.isSuccessful }
@@ -57,7 +57,7 @@ class PhotoApi(private val client: OkHttpClient = defaultClient()) {
     fun existsByHash(baseUrl: String, token: String, hash: String): Boolean = try {
         val request = Request.Builder()
             .url("${baseUrl.trimEnd('/')}/photos/$hash")
-            .header("Authorization", "Bearer $token")
+            .header(HEADER_API_KEY, token)
             .head()
             .build()
         client.newCall(request).execute().use { it.isSuccessful }
@@ -85,7 +85,7 @@ class PhotoApi(private val client: OkHttpClient = defaultClient()) {
 
         val request = Request.Builder()
             .url("${baseUrl.trimEnd('/')}/photos")
-            .header("Authorization", "Bearer $token")
+            .header(HEADER_API_KEY, token)
             .post(bodyBuilder.build())
             .build()
 
@@ -131,6 +131,9 @@ class PhotoApi(private val client: OkHttpClient = defaultClient()) {
     }.toMediaTypeOrNull()
 
     companion object {
+        /** Single static API key header, per the canonical server contract. */
+        const val HEADER_API_KEY = "x-api-key"
+
         fun defaultClient(): OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(120, TimeUnit.SECONDS)

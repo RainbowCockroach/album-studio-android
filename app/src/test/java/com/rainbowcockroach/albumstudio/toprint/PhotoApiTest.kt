@@ -7,6 +7,7 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -105,6 +106,15 @@ class PhotoApiTest {
         val body = server.takeRequest().body.readUtf8()
         assertFalse(body.contains("name=\"capturedAt\""))
         assertTrue(body.contains("name=\"file\""))
+    }
+
+    @Test
+    fun upload_sendsApiKeyHeader_notBearer() {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"hash":"h","existed":false}"""))
+        upload()
+        val recorded = server.takeRequest()
+        assertEquals("secret", recorded.getHeader("x-api-key"))
+        assertNull(recorded.getHeader("Authorization"))
     }
 
     @Test

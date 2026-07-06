@@ -29,7 +29,7 @@ Three pieces, in priority order:
 ### 2. Upload Engine — WorkManager
 
 - One `OneTimeWorkRequest` per photo. Constraints: `NetworkType.CONNECTED`. Backoff: exponential. This is the heart of the app: uploads must survive process death, airplane mode, and bad signal, completing whenever connectivity returns.
-- Worker: OkHttp multipart `POST {serverUrl}/photos`, file field `file` (original filename preserved), plus text field `capturedAt` (ISO 8601) when known, header `Authorization: Bearer <token>`.
+- Worker: OkHttp multipart `POST {serverUrl}/photos`, file field `file` (original filename preserved), plus text field `capturedAt` (ISO 8601) when known, header `x-api-key: <token>`.
 - Parse response `{"hash", "existed", ...}`. Both `existed` true and false are success. Delete the local pending copy on success.
 - Optional optimization (do last): compute SHA-256 locally and `HEAD /photos/{hash}` first; skip the upload body if 200.
 - HTTP 401 → fail permanently (don't retry; surface "check token" in status). 5xx/network errors → `Result.retry()`.
@@ -54,7 +54,7 @@ Two screens, Material3, no over-engineering:
 
 ## API Contract (duplicate — canonical copy lives in `../album-studio-server/CLAUDE.md`)
 
-All routes except `/health` require `Authorization: Bearer <token>`.
+All routes except `/health` require an API key in the `x-api-key` header.
 
 | Method & Path | Request | Response |
 |---|---|---|
