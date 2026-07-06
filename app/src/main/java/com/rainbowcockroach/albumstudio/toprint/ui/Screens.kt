@@ -236,12 +236,13 @@ private fun UploadRow(upload: UploadEntity, onRetry: () -> Unit) {
     }
 }
 
-/** A successful upload deletes its local file immediately (see UploadWorker), so a
- *  Done row has nothing left to preview — the checkmark stands in for the photo. */
+/** Prefers the small persistent thumbnail (survives past DONE); falls back to the full-res
+ *  pending copy for rows created before thumbnails existed. If neither file is present, the
+ *  fallback icon below stands in for the photo. */
 @Composable
 private fun UploadThumbnail(upload: UploadEntity) {
     SubcomposeAsyncImage(
-        model = File(upload.localPath),
+        model = File(upload.thumbnailPath ?: upload.localPath),
         contentDescription = null,
         contentScale = ContentScale.Crop,
         modifier = Modifier

@@ -98,15 +98,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Remove Done/Failed rows to declutter the list. Failed rows still hold a pending
-     *  file on disk (only a successful upload deletes it), so those are cleaned up too;
-     *  queued/uploading items are never touched by this. */
+    /** Remove Done/Failed rows to declutter the list, along with their on-disk files: the
+     *  thumbnail (kept around for every finished row) and, for Failed rows, the full-res
+     *  pending copy too (only a successful upload deletes that one). Queued/Uploading rows
+     *  are never touched by this. */
     fun clearFinished() {
         viewModelScope.launch {
             val finished = app.uploadDao.getFinished()
             withContext(Dispatchers.IO) {
-                finished.filter { it.status == UploadStatus.FAILED }
-                    .forEach { File(it.localPath).delete() }
+                finished.forEach { entity ->
+                    if (entity.status == UploadStatus.FAILED) {
+                        File(entity.localPath).delete()
+                    }
+                    entity.thumbnailPath?.let { File(it).delete() }
+                }
             }
             app.uploadDao.deleteFinished()
         }

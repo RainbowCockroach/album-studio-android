@@ -1,6 +1,8 @@
 package com.rainbowcockroach.albumstudio.toprint
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -60,6 +62,7 @@ class ShareReceiverActivity : ComponentActivity() {
         val app = ToPrintApp.from(this)
         val resolver = CaptureTimeResolver(this)
         val pendingDir = File(filesDir, "pending").apply { mkdirs() }
+        val thumbnailsDir = File(filesDir, "thumbnails").apply { mkdirs() }
 
         var count = 0
         for (uri in uris) {
@@ -70,15 +73,19 @@ class ShareReceiverActivity : ComponentActivity() {
                 val fileName = safeFileName(uri, displayName)
                 val capturedAt = resolver.resolve(uri)
 
-                val dest = File(pendingDir, "${UUID.randomUUID()}_$fileName")
+                val uid = UUID.randomUUID()
+                val dest = File(pendingDir, "${uid}_$fileName")
                 contentResolver.openInputStream(uri)?.use { input ->
                     dest.outputStream().use { output -> input.copyTo(output) }
                 } ?: continue
+
+                val thumbnailPath = writeThumbnail(dest, File(thumbnailsDir, "$uid.jpg"))
 
                 val id = app.uploadDao.insert(
                     UploadEntity(
                         fileName = fileName,
                         localPath = dest.absolutePath,
+                        thumbnailPath = thumbnailPath,
                         capturedAt = capturedAt,
                         status = UploadStatus.QUEUED,
                         createdAt = System.currentTimeMillis(),
@@ -91,6 +98,32 @@ class ShareReceiverActivity : ComponentActivity() {
             }
         }
         return count
+    }
+
+    /** Downscaled JPEG copy for the list preview, kept independent of [dest] so it survives
+     *  the pending file getting deleted once the upload succeeds. Null on any decode failure
+     *  (e.g. an unsupported format) — the UI just falls back to a status icon. */
+    private fun writeThumbnail(source: File, dest: File): String? = try {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(source.absolutePath, bounds)
+
+        var sample = 1
+        while (bounds.outWidth / sample > THUMBNAIL_MAX_DIMENSION ||
+            bounds.outHeight / sample > THUMBNAIL_MAX_DIMENSION
+        ) {
+            sample *= 2
+        }
+
+        val bitmap = BitmapFactory.decodeFile(
+            source.absolutePath,
+            BitmapFactory.Options().apply { inSampleSize = sample }
+        ) ?: return null
+
+        dest.outputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out) }
+        bitmap.recycle()
+        dest.absolutePath
+    } catch (_: Exception) {
+        null
     }
 
     private fun extractUris(intent: Intent?): List<Uri> {
@@ -145,4 +178,8 @@ class ShareReceiverActivity : ComponentActivity() {
         } else {
             getParcelableArrayListExtra(key)
         }
+
+    private companion object {
+        const val THUMBNAIL_MAX_DIMENSION = 320
+    }
 }

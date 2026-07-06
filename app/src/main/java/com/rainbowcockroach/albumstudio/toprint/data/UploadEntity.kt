@@ -14,8 +14,11 @@ enum class UploadStatus { QUEUED, UPLOADING, DONE, FAILED }
 data class UploadEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val fileName: String,
-    /** Absolute path to the app-private copy under filesDir/pending/. Cleared once DONE. */
+    /** Absolute path to the app-private copy under filesDir/pending/. Deleted once DONE. */
     val localPath: String,
+    /** Small downscaled preview under filesDir/thumbnails/. Unlike localPath, this survives
+     *  past DONE — it's how the list keeps showing a photo after the full-res copy is gone. */
+    val thumbnailPath: String? = null,
     /** Resolved ISO-8601 capturedAt, or null if every strategy failed. */
     val capturedAt: String?,
     val status: UploadStatus,
