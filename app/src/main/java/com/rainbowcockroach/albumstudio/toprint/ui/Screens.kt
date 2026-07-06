@@ -1,6 +1,8 @@
 package com.rainbowcockroach.albumstudio.toprint.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,10 +15,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,6 +45,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,9 +54,13 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.content.Intent
+import coil.compose.AsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import com.rainbowcockroach.albumstudio.toprint.data.UpdateStatus
 import com.rainbowcockroach.albumstudio.toprint.data.UploadEntity
 import com.rainbowcockroach.albumstudio.toprint.data.UploadStatus
+import java.io.File
 import java.text.DateFormat
 import java.util.Date
 
@@ -104,6 +118,10 @@ private fun UploadListScreen(
     onOpenSettings: () -> Unit,
 ) {
     val uploads by viewModel.uploads.collectAsStateWithLifecycle()
+    val finishedCount = remember(uploads) {
+        uploads.count { it.status == UploadStatus.DONE || it.status == UploadStatus.FAILED }
+    }
+    var showClearConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -111,6 +129,13 @@ private fun UploadListScreen(
             TopAppBar(
                 title = { Text("To Print") },
                 actions = {
+                    if (finishedCount > 0) {
+                        BadgedBox(badge = { Badge { Text(finishedCount.toString()) } }) {
+                            IconButton(onClick = { showClearConfirm = true }) {
+                                Icon(Icons.Filled.DeleteSweep, contentDescription = "Clear finished uploads")
+                            }
+                        }
+                    }
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = "Settings")
                     }
@@ -146,6 +171,30 @@ private fun UploadListScreen(
             }
         }
     }
+
+    if (showClearConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            title = { Text("Clear finished uploads?") },
+            text = {
+                val item = if (finishedCount == 1) "item" else "items"
+                Text(
+                    "Removes $finishedCount completed and failed $item from this list. " +
+                        "Failed uploads can't be retried after they're cleared — queued and " +
+                        "in-progress uploads aren't affected."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.clearFinished()
+                    showClearConfirm = false
+                }) { Text("Clear", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirm = false }) { Text("Cancel") }
+            },
+        )
+    }
 }
 
 @Composable
@@ -155,6 +204,8 @@ private fun UploadRow(upload: UploadEntity, onRetry: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            UploadThumbnail(upload)
+            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     upload.fileName,
@@ -176,6 +227,38 @@ private fun UploadRow(upload: UploadEntity, onRetry: () -> Unit) {
                     OutlinedButton(onClick = onRetry) { Text("Retry") }
                 else ->
                     StatusLabel(upload.status)
+            }
+        }
+    }
+}
+
+/** A successful upload deletes its local file immediately (see UploadWorker), so a
+ *  Done row has nothing left to preview — the checkmark stands in for the photo. */
+@Composable
+private fun UploadThumbnail(upload: UploadEntity) {
+    SubcomposeAsyncImage(
+        model = File(upload.localPath),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .size(52.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        if (painter.state is AsyncImagePainter.State.Success) {
+            SubcomposeAsyncImageContent()
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = if (upload.status == UploadStatus.DONE) {
+                        Icons.Filled.CheckCircle
+                    } else {
+                        Icons.Outlined.Image
+                    },
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp),
+                )
             }
         }
     }

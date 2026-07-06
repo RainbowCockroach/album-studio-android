@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -94,6 +95,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             app.uploadDao.updateResult(upload.id, UploadStatus.QUEUED, upload.hash, null)
             UploadQueue.enqueue(getApplication(), upload.id)
+        }
+    }
+
+    /** Remove Done/Failed rows to declutter the list. Failed rows still hold a pending
+     *  file on disk (only a successful upload deletes it), so those are cleaned up too;
+     *  queued/uploading items are never touched by this. */
+    fun clearFinished() {
+        viewModelScope.launch {
+            val finished = app.uploadDao.getFinished()
+            withContext(Dispatchers.IO) {
+                finished.filter { it.status == UploadStatus.FAILED }
+                    .forEach { File(it.localPath).delete() }
+            }
+            app.uploadDao.deleteFinished()
         }
     }
 

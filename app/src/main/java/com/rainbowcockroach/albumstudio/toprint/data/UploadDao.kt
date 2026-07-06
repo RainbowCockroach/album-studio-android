@@ -25,4 +25,10 @@ interface UploadDao {
 
     @Query("SELECT COUNT(*) FROM uploads WHERE status IN ('QUEUED', 'UPLOADING')")
     fun observeActiveCount(): Flow<Int>
+
+    @Query("SELECT * FROM uploads WHERE status IN ('DONE', 'FAILED')")
+    suspend fun getFinished(): List<UploadEntity>
+
+    @Query("DELETE FROM uploads WHERE status IN ('DONE', 'FAILED')")
+    suspend fun deleteFinished()
 }
